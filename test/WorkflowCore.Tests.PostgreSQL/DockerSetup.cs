@@ -1,50 +1,35 @@
-﻿using Docker.DotNet;
-using Docker.DotNet.Models;
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using Docker.Testify;
-using Npgsql;
+﻿using System.Threading.Tasks;
+using Squadron;
 using Xunit;
 
 namespace WorkflowCore.Tests.PostgreSQL
 {
-    public class PostgresDockerSetup : DockerSetup
+    public class PostgresDockerSetup : IAsyncLifetime
     {
+        private readonly PostgreSqlResource _postgreSqlResource;
         public static string ConnectionString { get; set; }
         public static string ScenarioConnectionString { get; set; }
 
-        public override string ImageName => "postgres";
-        public override int InternalPort => 5432;
-
-        public override void PublishConnectionInfo()
+        public PostgresDockerSetup()
         {
-            ConnectionString = $"Server=127.0.0.1;Port={ExternalPort};Database=workflow;User Id=postgres;";
-            ScenarioConnectionString = $"Server=127.0.0.1;Port={ExternalPort};Database=workflow-scenarios;User Id=postgres;";
+            _postgreSqlResource = new PostgreSqlResource();
         }
 
-        public override bool TestReady()
+        public async Task InitializeAsync()
         {
-            try
-            {
-                var connection = new NpgsqlConnection($"Server=127.0.0.1;Port={ExternalPort};Database=postgres;User Id=postgres;");
-                connection.Open();
-                connection.Close();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            await _postgreSqlResource.InitializeAsync();
+            ConnectionString = _postgreSqlResource.ConnectionString;
+            ScenarioConnectionString = _postgreSqlResource.ConnectionString;
+        }
 
+        public Task DisposeAsync()
+        {
+            return _postgreSqlResource.DisposeAsync();
         }
     }
-    
+
     [CollectionDefinition("Postgres collection")]
     public class PostgresCollection : ICollectionFixture<PostgresDockerSetup>
-    {        
+    {
     }
-
 }

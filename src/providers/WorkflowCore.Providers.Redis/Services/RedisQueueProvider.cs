@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ namespace WorkflowCore.Providers.Redis.Services
         private IConnectionMultiplexer _multiplexer;
         private IDatabase _redis;
 
-        private readonly Dictionary<QueueType, string> _queues = new Dictionary<QueueType, string>()
+        private readonly Dictionary<QueueType, string> _queues = new Dictionary<QueueType, string>
         {
             [QueueType.Workflow] = "workflows",
             [QueueType.Event] = "events",
@@ -37,7 +36,13 @@ namespace WorkflowCore.Providers.Redis.Services
             if (_redis == null)
                 throw new InvalidOperationException();
 
-            await _redis.ListRightPushAsync(GetQueueName(queue), id, When.Always);
+            var queueName = GetQueueName(queue);
+
+            var insertResult = await _redis.ListInsertBeforeAsync(queueName, id, id);
+            if (insertResult == -1 || insertResult == 0)
+                await _redis.ListRightPushAsync(queueName, id, When.Always);
+            else
+                await _redis.ListRemoveAsync(queueName, id, 1);
         }
 
         public async Task<string> DequeueWork(QueueType queue, CancellationToken cancellationToken)

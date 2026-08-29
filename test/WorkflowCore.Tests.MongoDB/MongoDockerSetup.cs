@@ -1,46 +1,40 @@
-﻿using Docker.DotNet;
-using Docker.DotNet.Models;
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-using Docker.Testify;
-using MongoDB.Driver;
+﻿using System;
+using System.Threading.Tasks;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using Squadron;
+using WorkflowCore.UnitTests;
 using Xunit;
 
 namespace WorkflowCore.Tests.MongoDB
-{    
-    public class MongoDockerSetup : DockerSetup
+{
+    public class MongoDockerSetup : IAsyncLifetime
     {
+        private readonly MongoReplicaSetResource _mongoResource;
         public static string ConnectionString { get; set; }
 
-        public override string ImageName => "mongo";
-        public override int InternalPort => 27017;
-
-        public override void PublishConnectionInfo()
+        public MongoDockerSetup()
         {
-            ConnectionString = $"mongodb://localhost:{ExternalPort}";
+            _mongoResource = new MongoReplicaSetResource();
         }
 
-        public override bool TestReady()
+        public async Task InitializeAsync()
         {
-            try
-            {
-                var client = new MongoClient($"mongodb://localhost:{ExternalPort}");
-                client.ListDatabases();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            await _mongoResource.InitializeAsync();
+            ConnectionString = _mongoResource.ConnectionString;
+            BsonSerializer.TryRegisterSerializer(new ObjectSerializer(type =>
+                ObjectSerializer.DefaultAllowedTypes(type) || type.FullName.StartsWith("WorkflowCore.")));
+        }
 
+        public Task DisposeAsync()
+        {
+            return _mongoResource.DisposeAsync();
         }
     }
 
     [CollectionDefinition("Mongo collection")]
     public class MongoCollection : ICollectionFixture<MongoDockerSetup>
-    {        
+    {
     }
-
 }

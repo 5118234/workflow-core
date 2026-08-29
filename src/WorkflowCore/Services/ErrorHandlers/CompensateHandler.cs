@@ -1,26 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using WorkflowCore.Interface;
 using WorkflowCore.Models;
-using WorkflowCore.Models.LifeCycleEvents;
 
 namespace WorkflowCore.Services.ErrorHandlers
 {
     public class CompensateHandler : IWorkflowErrorHandler
     {
-        private readonly ILifeCycleEventPublisher _eventPublisher;
         private readonly IExecutionPointerFactory _pointerFactory;
         private readonly IDateTimeProvider _datetimeProvider;
         private readonly WorkflowOptions _options;
 
         public WorkflowErrorHandling Type => WorkflowErrorHandling.Compensate;
 
-        public CompensateHandler(IExecutionPointerFactory pointerFactory, ILifeCycleEventPublisher eventPublisher, IDateTimeProvider datetimeProvider, WorkflowOptions options)
+        public CompensateHandler(IExecutionPointerFactory pointerFactory, IDateTimeProvider datetimeProvider, WorkflowOptions options)
         {
             _pointerFactory = pointerFactory;
-            _eventPublisher = eventPublisher;
             _datetimeProvider = datetimeProvider;
             _options = options;
         }
@@ -29,7 +25,8 @@ namespace WorkflowCore.Services.ErrorHandlers
         {
             var scope = new Stack<string>(exceptionPointer.Scope.Reverse());
             scope.Push(exceptionPointer.Id);
-            
+            ExecutionPointer compensationPointer = null;
+
             while (scope.Any())
             {
                 var pointerId = scope.Pop();
@@ -67,7 +64,14 @@ namespace WorkflowCore.Services.ErrorHandlers
                 {
                     scopePointer.Status = PointerStatus.Compensated;
 
-                    var compensationPointer = _pointerFactory.BuildCompensationPointer(def, scopePointer, exceptionPointer, scopeStep.CompensationStepId.Value);
+                    var nextCompensationPointer = _pointerFactory.BuildCompensationPointer(def, scopePointer, exceptionPointer, scopeStep.CompensationStepId.Value);
+                    if (compensationPointer != null)
+                    {
+                        nextCompensationPointer.Active = false;
+                        nextCompensationPointer.Status = PointerStatus.PendingPredecessor;
+                        nextCompensationPointer.PredecessorId = compensationPointer.Id;                        
+                    }
+                    compensationPointer = nextCompensationPointer;
                     workflow.ExecutionPointers.Add(compensationPointer);
 
                     if (resume)
@@ -89,8 +93,16 @@ namespace WorkflowCore.Services.ErrorHandlers
                         var siblingStep = def.Steps.FindById(siblingPointer.StepId);
                         if (siblingStep.CompensationStepId.HasValue)
                         {
-                            var compensationPointer = _pointerFactory.BuildCompensationPointer(def, siblingPointer, exceptionPointer, siblingStep.CompensationStepId.Value);
-                            workflow.ExecutionPointers.Add(compensationPointer);
+                            var nextCompensationPointer = _pointerFactory.BuildCompensationPointer(def, siblingPointer, exceptionPointer, siblingStep.CompensationStepId.Value);
+                            if (compensationPointer != null)
+                            {
+                                nextCompensationPointer.Active = false;
+                                nextCompensationPointer.Status = PointerStatus.PendingPredecessor;
+                                nextCompensationPointer.PredecessorId = compensationPointer.Id;
+                            }
+                            compensationPointer = nextCompensationPointer;
+                            workflow.ExecutionPointers.Add(nextCompensationPointer);
+
                             siblingPointer.Status = PointerStatus.Compensated;
                         }
                     }

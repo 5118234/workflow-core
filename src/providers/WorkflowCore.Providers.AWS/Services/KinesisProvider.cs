@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.Kinesis;
@@ -27,7 +26,7 @@ namespace WorkflowCore.Providers.AWS.Services
         private readonly int _defaultShardCount = 1;
         private bool _started = false;
 
-        public KinesisProvider(AWSCredentials credentials, RegionEndpoint region, string appName, string streamName, IKinesisStreamConsumer consumer, ILoggerFactory logFactory)
+        public KinesisProvider(AmazonKinesisClient kinesisClient, string appName, string streamName, IKinesisStreamConsumer consumer, ILoggerFactory logFactory)
         {
             _logger = logFactory.CreateLogger(GetType());
             _appName = appName;
@@ -35,7 +34,7 @@ namespace WorkflowCore.Providers.AWS.Services
             _consumer = consumer;
             _serializer = new JsonSerializer();            
             _serializer.TypeNameHandling = TypeNameHandling.All;
-            _client = new AmazonKinesisClient(credentials, region);
+            _client = kinesisClient;
         }
 
         public async Task PublishNotification(LifeCycleEvent evt)
@@ -46,7 +45,7 @@ namespace WorkflowCore.Providers.AWS.Services
                 _serializer.Serialize(writer, evt);
                 writer.Flush();
 
-                var response = await _client.PutRecordAsync(new PutRecordRequest()
+                var response = await _client.PutRecordAsync(new PutRecordRequest
                 {
                     StreamName = _streamName,
                     PartitionKey = evt.WorkflowInstanceId,
@@ -93,7 +92,7 @@ namespace WorkflowCore.Providers.AWS.Services
         {
             try
             {
-                await _client.DescribeStreamSummaryAsync(new DescribeStreamSummaryRequest()
+                await _client.DescribeStreamSummaryAsync(new DescribeStreamSummaryRequest
                 {
                     StreamName = _streamName
                 });
@@ -106,7 +105,7 @@ namespace WorkflowCore.Providers.AWS.Services
 
         private async Task<string> CreateStream()
         {
-            await _client.CreateStreamAsync(new CreateStreamRequest()
+            await _client.CreateStreamAsync(new CreateStreamRequest
             {
                 StreamName = _streamName,
                 ShardCount = _defaultShardCount
@@ -117,7 +116,7 @@ namespace WorkflowCore.Providers.AWS.Services
             {
                 i++;
                 await Task.Delay(3000);
-                var poll = await _client.DescribeStreamSummaryAsync(new DescribeStreamSummaryRequest()
+                var poll = await _client.DescribeStreamSummaryAsync(new DescribeStreamSummaryRequest
                 {
                     StreamName = _streamName
                 });

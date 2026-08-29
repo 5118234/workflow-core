@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.IO;
 
@@ -9,7 +7,7 @@ namespace WorkflowCore.TestAssets
 {
     public static class Utils
     {
-        private static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All, DateFormatHandling = DateFormatHandling.IsoDateFormat, DateTimeZoneHandling = DateTimeZoneHandling.Utc };
+        private static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All, DateFormatHandling = DateFormatHandling.IsoDateFormat, DateTimeZoneHandling = DateTimeZoneHandling.Utc };
 
         public static T DeepCopy<T>(T obj)
         {
@@ -31,6 +29,10 @@ namespace WorkflowCore.TestAssets
         public static string GetTestDefinitionDynamicJson()
         {
             return File.ReadAllText("stored-dynamic-definition.json");
+        }
+        public static string GetTestDefinitionDynamicYaml()
+        {
+            return File.ReadAllText("stored-dynamic-definition.yaml");
         }
 
         public static string GetTestDefinitionJsonMissingInputProperty()

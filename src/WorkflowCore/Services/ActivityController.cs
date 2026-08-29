@@ -1,5 +1,4 @@
 using System;
-using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -28,17 +27,21 @@ namespace WorkflowCore.Services
         
         public async Task<PendingActivity> GetPendingActivity(string activityName, string workerId, TimeSpan? timeout = null)
         {
-            var endTime = DateTime.UtcNow.Add(timeout ?? TimeSpan.Zero);
+            var endTime = _dateTimeProvider.UtcNow.Add(timeout ?? TimeSpan.Zero);
             var firstPass = true;
             EventSubscription subscription = null;
-            while ((subscription == null && DateTime.UtcNow < endTime) || firstPass)
+            bool lockAcquired = false;
+            while ((subscription == null && _dateTimeProvider.UtcNow < endTime) || firstPass)
             {
                 if (!firstPass)
                     await Task.Delay(100);
-                subscription = await _subscriptionRepository.GetFirstOpenSubscription(Event.EventTypeActivity, activityName, _dateTimeProvider.Now);
+                subscription = await _subscriptionRepository.GetFirstOpenSubscription(Event.EventTypeActivity, activityName, _dateTimeProvider.UtcNow);
                 if (subscription != null)
-                    if (!await _lockProvider.AcquireLock($"sub:{subscription.Id}", CancellationToken.None))
+                {
+                    lockAcquired = await _lockProvider.AcquireLock($"sub:{subscription.Id}", CancellationToken.None);
+                    if (!lockAcquired)
                         subscription = null;
+                }
                 firstPass = false;
             }
             if (subscription == null)
@@ -47,12 +50,12 @@ namespace WorkflowCore.Services
             try
             {
                 var token = Token.Create(subscription.Id, subscription.EventKey);
-                var result = new PendingActivity()
+                var result = new PendingActivity
                 {
                     Token = token.Encode(),
                     ActivityName = subscription.EventKey,
                     Parameters = subscription.SubscriptionData,
-                    TokenExpiry = DateTime.MaxValue
+                    TokenExpiry = DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
                 };
 
                 if (!await _subscriptionRepository.SetSubscriptionToken(subscription.Id, result.Token, workerId, result.TokenExpiry))
@@ -62,7 +65,8 @@ namespace WorkflowCore.Services
             }
             finally
             {
-                await _lockProvider.ReleaseLock($"sub:{subscription.Id}");
+                if (lockAcquired)
+                    await _lockProvider.ReleaseLock($"sub:{subscription.Id}");
             }
 
         }
@@ -75,7 +79,7 @@ namespace WorkflowCore.Services
 
         public async Task SubmitActivitySuccess(string token, object result)
         {
-            await SubmitActivityResult(token, new ActivityResult()
+            await SubmitActivityResult(token, new ActivityResult
             {
                 Data = result,
                 Status = ActivityResult.StatusType.Success
@@ -84,7 +88,7 @@ namespace WorkflowCore.Services
 
         public async Task SubmitActivityFailure(string token, object result)
         {
-            await SubmitActivityResult(token, new ActivityResult()
+            await SubmitActivityResult(token, new ActivityResult
             {
                 Data = result,
                 Status = ActivityResult.StatusType.Fail
@@ -120,7 +124,7 @@ namespace WorkflowCore.Services
 
             public static Token Create(string subscriptionId, string activityName)
             {
-                return new Token()
+                return new Token
                 {
                     SubscriptionId = subscriptionId,
                     ActivityName = activityName,

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using WorkflowCore.Interface;
 using WorkflowCore.Models;
 using Xunit;
@@ -45,19 +43,19 @@ namespace WorkflowCore.IntegrationTests.Scenarios
 
         public ActivityScenario()
         {
-            Setup();
+            Setup(); //NOTE cjundt [10/03/2023] setup shouldn't be here in constructor. It prevents from using ICollectionFixture data.
         }
 
         [Fact]
         public void Scenario()
         {
-            var workflowId = StartWorkflow(new MyDataClass() { ActivityInput = new ActivityInput() { Value1 = "a", Value2 = 1 } });
+            var workflowId = StartWorkflow(new MyDataClass { ActivityInput = new ActivityInput { Value1 = "a", Value2 = 1 } });
             var activity = Host.GetPendingActivity("act-1", "worker1", TimeSpan.FromSeconds(30)).Result;
 
             if (activity != null)
             {
                 var actInput = (ActivityInput)activity.Parameters;
-                Host.SubmitActivitySuccess(activity.Token, new ActivityOutput() 
+                Host.SubmitActivitySuccess(activity.Token, new ActivityOutput
                 { 
                     Value1 = actInput.Value1 + "1",
                     Value2 = actInput.Value2 + 1

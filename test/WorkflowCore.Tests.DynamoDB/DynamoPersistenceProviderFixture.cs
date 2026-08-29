@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Amazon.DynamoDBv2;
 using Microsoft.Extensions.Logging;
 using WorkflowCore.Interface;
@@ -28,8 +26,9 @@ namespace WorkflowCore.Tests.DynamoDB
                 if (_subject == null)
                 {
                     var cfg = new AmazonDynamoDBConfig { ServiceURL = DynamoDbDockerSetup.ConnectionString };
-                    var provisioner = new DynamoDbProvisioner(DynamoDbDockerSetup.Credentials, cfg, "unittests", new LoggerFactory());
-                    var client = new DynamoPersistenceProvider(DynamoDbDockerSetup.Credentials, cfg, provisioner, "unittests", new LoggerFactory());
+                    var dbClient = new AmazonDynamoDBClient(DynamoDbDockerSetup.Credentials, cfg);
+                    var provisioner = new DynamoDbProvisioner(dbClient, "unittests", new LoggerFactory());
+                    var client = new DynamoPersistenceProvider(dbClient, provisioner, "unittests", new LoggerFactory());
                     client.EnsureStoreExists();
                     _subject = client;
                 }

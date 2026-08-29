@@ -23,39 +23,41 @@ namespace WorkflowCore.Providers.AWS.Services
         private Task _heartbeatTask;
         private CancellationTokenSource _cancellationTokenSource;
         private readonly AutoResetEvent _mutex = new AutoResetEvent(true);
+        private readonly IDateTimeProvider _dateTimeProvider;
 
-        public DynamoLockProvider(AWSCredentials credentials, AmazonDynamoDBConfig config, string tableName, ILoggerFactory logFactory)
+        public DynamoLockProvider(AmazonDynamoDBClient dynamoDBClient, string tableName, ILoggerFactory logFactory, IDateTimeProvider dateTimeProvider)
         {
             _logger = logFactory.CreateLogger<DynamoLockProvider>();
-            _client = new AmazonDynamoDBClient(credentials, config);
+            _client = dynamoDBClient;
             _localLocks = new List<string>();
             _tableName = tableName;
             _nodeId = Guid.NewGuid().ToString();
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public async Task<bool> AcquireLock(string Id, CancellationToken cancellationToken)
         {
             try
             {
-                var req = new PutItemRequest()
+                var req = new PutItemRequest
                 {
                     TableName = _tableName,
                     Item = new Dictionary<string, AttributeValue>
                     {
                         { "id", new AttributeValue(Id) },
                         { "lock_owner", new AttributeValue(_nodeId) },
-                        { "expires", new AttributeValue()
+                        { "expires", new AttributeValue
                             {
-                                N = Convert.ToString(new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds() + _ttl)
+                                N = Convert.ToString(new DateTimeOffset(_dateTimeProvider.UtcNow).ToUnixTimeMilliseconds() + _ttl)
                             }
                         }
                     },
                     ConditionExpression = "attribute_not_exists(id) OR (expires < :expired)",
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
-                        { ":expired", new AttributeValue()
+                        { ":expired", new AttributeValue
                             {
-                                N = Convert.ToString(new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds() + _jitter)
+                                N = Convert.ToString(new DateTimeOffset(_dateTimeProvider.UtcNow).ToUnixTimeMilliseconds() + _jitter)
                             }
                         }
                     }
@@ -89,7 +91,7 @@ namespace WorkflowCore.Providers.AWS.Services
             
             try
             {
-                var req = new DeleteItemRequest()
+                var req = new DeleteItemRequest
                 {
                     TableName = _tableName,
                     Key = new Dictionary<string, AttributeValue>
@@ -120,19 +122,20 @@ namespace WorkflowCore.Providers.AWS.Services
 
             _cancellationTokenSource = new CancellationTokenSource();
 
-            _heartbeatTask = new Task(SendHeartbeat);
-            _heartbeatTask.Start();
+            _heartbeatTask = Task.Run(() => SendHeartbeat());
         }
 
-        public Task Stop()
+        public async Task Stop()
         {
             _cancellationTokenSource.Cancel();
-            _heartbeatTask.Wait();
-            _heartbeatTask = null;
-            return Task.CompletedTask;
+            if (_heartbeatTask != null)
+            {
+                await _heartbeatTask;
+                _heartbeatTask = null;
+            }
         }
 
-        private async void SendHeartbeat()
+        private async Task SendHeartbeat()
         {
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
@@ -152,9 +155,9 @@ namespace WorkflowCore.Providers.AWS.Services
                                     {
                                         { "id", new AttributeValue(item) },
                                         { "lock_owner", new AttributeValue(_nodeId) },
-                                        { "expires", new AttributeValue()
+                                        { "expires", new AttributeValue
                                             {
-                                                N = Convert.ToString(new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds() + _ttl)
+                                                N = Convert.ToString(new DateTimeOffset(_dateTimeProvider.UtcNow).ToUnixTimeMilliseconds() + _ttl)
                                             }
                                         }
                                     },
@@ -202,12 +205,12 @@ namespace WorkflowCore.Providers.AWS.Services
 
         private async Task CreateTable()
         {
-            var createRequest = new CreateTableRequest(_tableName, new List<KeySchemaElement>()
+            var createRequest = new CreateTableRequest(_tableName, new List<KeySchemaElement>
             {
                 new KeySchemaElement("id", KeyType.HASH)
             })
             {
-                AttributeDefinitions = new List<AttributeDefinition>()
+                AttributeDefinitions = new List<AttributeDefinition>
                 {
                     new AttributeDefinition("id", ScalarAttributeType.S)
                 },

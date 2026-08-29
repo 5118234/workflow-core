@@ -1,9 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using WorkflowCore.Persistence.EntityFramework.Models;
 using WorkflowCore.Persistence.EntityFramework.Services;
 
@@ -53,6 +51,11 @@ namespace WorkflowCore.Persistence.Sqlite
         protected override void ConfigureEventStorage(EntityTypeBuilder<PersistedEvent> builder)
         {
             builder.ToTable("Event");
+        }
+
+        protected override void ConfigureScheduledCommandStorage(EntityTypeBuilder<PersistedScheduledCommand> builder)
+        {
+            builder.ToTable("ScheduledCommand");
         }
     }
 }

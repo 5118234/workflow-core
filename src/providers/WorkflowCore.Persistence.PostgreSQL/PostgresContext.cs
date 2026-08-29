@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using WorkflowCore.Persistence.EntityFramework.Models;
@@ -61,6 +59,60 @@ namespace WorkflowCore.Persistence.PostgreSQL
         {
             builder.ToTable("Event", _schemaName);
             builder.Property(x => x.PersistenceId).ValueGeneratedOnAdd();
+        }
+
+        protected override void ConfigureScheduledCommandStorage(EntityTypeBuilder<PersistedScheduledCommand> builder)
+        {
+            builder.ToTable("ScheduledCommand", _schemaName);
+            builder.Property(x => x.PersistenceId).ValueGeneratedOnAdd();
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<PersistedWorkflow>(x =>
+            {
+                x.Property(p => p.CompleteTime)
+                 .HasColumnType("timestamp with time zone");
+
+                x.Property(p => p.CreateTime)
+                 .HasColumnType("timestamp with time zone");
+            });
+
+            modelBuilder.Entity<PersistedExecutionPointer>(x =>
+            {
+                x.Property(p => p.SleepUntil)
+                 .HasColumnType("timestamp with time zone");
+
+                x.Property(p => p.StartTime)
+                 .HasColumnType("timestamp with time zone");
+
+                x.Property(p => p.EndTime)
+                 .HasColumnType("timestamp with time zone");
+
+            });
+
+            modelBuilder.Entity<PersistedExecutionError>(x =>
+            {
+                x.Property(p => p.ErrorTime)
+                 .HasColumnType("timestamp with time zone");
+
+            });
+
+            modelBuilder.Entity<PersistedSubscription>(x =>
+            {
+                x.Property(p => p.SubscribeAsOf)
+                 .HasColumnType("timestamp with time zone");
+
+                x.Property(p => p.ExternalTokenExpiry)
+                 .HasColumnType("timestamp with time zone");
+            });
+
+            modelBuilder.Entity<PersistedEvent>(
+                x => x.Property(x => x.EventTime)
+                .HasColumnType("timestamp with time zone")
+            );
         }
     }
 }

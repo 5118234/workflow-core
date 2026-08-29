@@ -15,8 +15,16 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
+#if NETSTANDARD2_1
+                .HasAnnotation("ProductVersion", "5.0.1")
+#elif NET6_0  
+                .HasAnnotation("ProductVersion", "7.0.0")
+#elif NET8_0 || NET9_0
+                .HasAnnotation("ProductVersion", "9.0.9")
+#else
+                .HasAnnotation("ProductVersion", "9.0.9")
+#endif
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedEvent", b =>
@@ -35,12 +43,12 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("EventTime")
                         .HasColumnType("datetime2");
@@ -59,7 +67,7 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
 
                     b.HasIndex("EventName", "EventKey");
 
-                    b.ToTable("Event","wfc");
+                    b.ToTable("Event", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionError", b =>
@@ -75,19 +83,19 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ExecutionPointerId")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Message")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("WorkflowId")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("PersistenceId");
 
-                    b.ToTable("ExecutionError","wfc");
+                    b.ToTable("ExecutionError", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
@@ -115,19 +123,19 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("EventPublished")
                         .HasColumnType("bit");
 
                     b.Property<string>("Id")
-                        .HasColumnType("nvarchar(50)")
-                        .HasMaxLength(50);
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Outcome")
                         .HasColumnType("nvarchar(max)");
@@ -136,8 +144,8 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PredecessorId")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("RetryCount")
                         .HasColumnType("int");
@@ -158,8 +166,8 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("StepName")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<long>("WorkflowId")
                         .HasColumnType("bigint");
@@ -168,7 +176,7 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
 
                     b.HasIndex("WorkflowId");
 
-                    b.ToTable("ExecutionPointer","wfc");
+                    b.ToTable("ExecutionPointer", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExtensionAttribute", b =>
@@ -181,8 +189,8 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("AttributeKey")
-                        .HasColumnType("nvarchar(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("AttributeValue")
                         .HasColumnType("nvarchar(max)");
@@ -194,7 +202,38 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
 
                     b.HasIndex("ExecutionPointerId");
 
-                    b.ToTable("ExtensionAttribute","wfc");
+                    b.ToTable("ExtensionAttribute", "wfc");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedScheduledCommand", b =>
+                {
+                    b.Property<long>("PersistenceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:IdentityIncrement", 1)
+                        .HasAnnotation("SqlServer:IdentitySeed", 1)
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("CommandName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Data")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("ExecuteTime")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("PersistenceId");
+
+                    b.HasIndex("ExecuteTime");
+
+                    b.HasIndex("CommandName", "Data")
+                        .IsUnique()
+                        .HasFilter("[CommandName] IS NOT NULL AND [Data] IS NOT NULL");
+
+                    b.ToTable("ScheduledCommand", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedSubscription", b =>
@@ -207,27 +246,27 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ExecutionPointerId")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ExternalToken")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("ExternalTokenExpiry")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ExternalWorkerId")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("StepId")
                         .HasColumnType("int");
@@ -239,12 +278,12 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("SubscriptionId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("WorkflowId")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("PersistenceId");
 
@@ -255,7 +294,7 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                     b.HasIndex("SubscriptionId")
                         .IsUnique();
 
-                    b.ToTable("Subscription","wfc");
+                    b.ToTable("Subscription", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedWorkflow", b =>
@@ -277,19 +316,19 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(500)")
-                        .HasMaxLength(500);
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("InstanceId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long?>("NextExecution")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Reference")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -298,8 +337,8 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("WorkflowDefinitionId")
-                        .HasColumnType("nvarchar(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("PersistenceId");
 
@@ -308,7 +347,7 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
 
                     b.HasIndex("NextExecution");
 
-                    b.ToTable("Workflow","wfc");
+                    b.ToTable("Workflow", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
@@ -318,6 +357,8 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasForeignKey("WorkflowId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Workflow");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExtensionAttribute", b =>
@@ -327,6 +368,18 @@ namespace WorkflowCore.Persistence.SqlServer.Migrations
                         .HasForeignKey("ExecutionPointerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ExecutionPointer");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
+                {
+                    b.Navigation("ExtensionAttributes");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedWorkflow", b =>
+                {
+                    b.Navigation("ExecutionPointers");
                 });
 #pragma warning restore 612, 618
         }

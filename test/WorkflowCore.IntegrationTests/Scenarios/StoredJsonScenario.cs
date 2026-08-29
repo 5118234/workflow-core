@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using WorkflowCore.Interface;
 using WorkflowCore.Models;
 using Xunit;
 using FluentAssertions;
@@ -11,7 +8,7 @@ using WorkflowCore.TestAssets.DataTypes;
 namespace WorkflowCore.IntegrationTests.Scenarios
 {
     public class StoredJsonScenario : JsonWorkflowTest
-    {   
+    {
         public StoredJsonScenario()
         {
             Setup();
@@ -20,7 +17,7 @@ namespace WorkflowCore.IntegrationTests.Scenarios
         [Fact(DisplayName = "Execute branch 1")]
         public void should_execute_branch1()
         {
-            var workflowId = StartWorkflow(TestAssets.Utils.GetTestDefinitionJson(), new CounterBoard() { Flag1 = true, Flag2 = true, Flag3 = true });
+            var workflowId = StartWorkflow(TestAssets.Utils.GetTestDefinitionJson(), new CounterBoard { Flag1 = true, Flag2 = true, Flag3 = true });
             WaitForWorkflowToComplete(workflowId, TimeSpan.FromSeconds(30));
 
             var data = GetData<CounterBoard>(workflowId);
@@ -34,12 +31,13 @@ namespace WorkflowCore.IntegrationTests.Scenarios
             data.Counter6.Should().Be(1);
             data.Counter7.Should().Be(1);
             data.Counter8.Should().Be(0);
+            data.Counter10.Should().Be(1);
         }
 
         [Fact(DisplayName = "Execute branch 2")]
         public void should_execute_branch2()
         {
-            var workflowId = StartWorkflow(TestAssets.Utils.GetTestDefinitionJson(), new CounterBoard() { Flag1 = true, Flag2 = true, Flag3 = false });
+            var workflowId = StartWorkflow(TestAssets.Utils.GetTestDefinitionJson(), new CounterBoard { Flag1 = true, Flag2 = true, Flag3 = false });
             WaitForWorkflowToComplete(workflowId, TimeSpan.FromSeconds(30));
 
             var data = GetData<CounterBoard>(workflowId);
@@ -53,6 +51,7 @@ namespace WorkflowCore.IntegrationTests.Scenarios
             data.Counter6.Should().Be(1);
             data.Counter7.Should().Be(0);
             data.Counter8.Should().Be(1);
+            data.Counter10.Should().Be(1);
         }
 
         [Fact]
@@ -67,7 +66,8 @@ namespace WorkflowCore.IntegrationTests.Scenarios
                 ["Counter3"] = 0,
                 ["Counter4"] = 0,
                 ["Counter5"] = 0,
-                ["Counter6"] = 0
+                ["Counter6"] = 0,
+                ["Counter10"] = 0
             };
 
             var workflowId = StartWorkflow(TestAssets.Utils.GetTestDefinitionDynamicJson(), initialData);
@@ -82,6 +82,7 @@ namespace WorkflowCore.IntegrationTests.Scenarios
             data["Counter4"].Should().Be(1);
             data["Counter5"].Should().Be(0);
             data["Counter6"].Should().Be(1);
+            data["Counter10"].Should().Be(1);
         }
     }
 }

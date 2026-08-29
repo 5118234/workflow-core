@@ -1,6 +1,7 @@
 # Workflow Core
 
 [![Build status](https://ci.appveyor.com/api/projects/status/xnby6p5v4ur04u76?svg=true)](https://ci.appveyor.com/project/danielgerlag/workflow-core)
+[<img src="https://api.gitsponsors.com/api/badge/img?id=73864802" height="20">](https://api.gitsponsors.com/api/badge/link?p=xj6mObb7nZAJGyuABfd8nD5XWf3SE4oUfw0vmCgSiJeIfNlzJAej0FWX8oFdYm6D7bvZpCf6qANVBNPWid4dRQ==)
 
 Workflow Core is a light weight embeddable workflow engine targeting .NET Standard.  Think: long running processes with multiple tasks that need to track state.  It supports pluggable persistence and concurrency providers to allow for multi-node clusters.
 
@@ -34,7 +35,7 @@ public class MyWorkflow : IWorkflow
 
 ## JSON / YAML Workflow Definitions
 
-Define your workflows in JSON or YAML
+Define your workflows in JSON or YAML, need to install WorkFlowCore.DSL
 
 ```json
 {
@@ -65,7 +66,7 @@ Steps:
   StepType: MyApp.GoodbyeWorld, MyApp
 ```
 
-### Sample use cases
+## Sample use cases
 
 * New user workflow
 ```c#
@@ -132,12 +133,14 @@ There are several persistence providers available as separate Nuget packages.
 
 * MemoryPersistenceProvider *(Default provider, for demo and testing purposes)*
 * [MongoDB](src/providers/WorkflowCore.Persistence.MongoDB)
+* [Cosmos DB](src/providers/WorkflowCore.Providers.Azure)
 * [Amazon DynamoDB](src/providers/WorkflowCore.Providers.AWS)
 * [SQL Server](src/providers/WorkflowCore.Persistence.SqlServer)
 * [PostgreSQL](src/providers/WorkflowCore.Persistence.PostgreSQL)
 * [Sqlite](src/providers/WorkflowCore.Persistence.Sqlite)
 * [MySQL](src/providers/WorkflowCore.Persistence.MySQL)
 * [Redis](src/providers/WorkflowCore.Providers.Redis)
+* [Oracle](src/providers/WorkflowCore.Persistence.Oracle)
 
 ## Search
 
@@ -147,6 +150,7 @@ These are also available as separate Nuget packages.
 
 ## Extensions
 
+* [Azure AI Foundry](src/extensions/WorkflowCore.AI.AzureFoundry)
 * [User (human) workflows](src/extensions/WorkflowCore.Users)
 
 
@@ -159,6 +163,8 @@ These are also available as separate Nuget packages.
 * [Passing Data](src/samples/WorkflowCore.Sample03)
 
 * [Parallel ForEach](src/samples/WorkflowCore.Sample09)
+
+* [Sync ForEach](src/samples/WorkflowCore.Sample09s)
 
 * [While Loop](src/samples/WorkflowCore.Sample10)
 
@@ -180,11 +186,11 @@ These are also available as separate Nuget packages.
 
 * [Deferred execution & re-entrant steps](src/samples/WorkflowCore.Sample05)
 
+* [Human(User) Workflow](src/samples/WorkflowCore.Sample08)
+
 * [Looping](src/samples/WorkflowCore.Sample02)
 
 * [Exposing a REST API](src/samples/WebApiSample)
-
-* [Human(User) Workflow](src/samples/WorkflowCore.Sample08)
 
 * [Testing](src/samples/WorkflowCore.TestSample01)
 

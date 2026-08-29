@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace WorkflowCore.Exceptions
 {
@@ -9,6 +7,11 @@ namespace WorkflowCore.Exceptions
         public WorkflowDefinitionLoadException(string message)
             : base (message)
         {            
+        }
+
+        public WorkflowDefinitionLoadException(string message, Exception innerException)
+            : base(message, innerException)
+        {
         }
     }
 }

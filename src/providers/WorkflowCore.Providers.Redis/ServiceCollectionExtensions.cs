@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 using WorkflowCore.Models;
 using WorkflowCore.Providers.Redis.Services;
 
@@ -14,15 +13,15 @@ namespace Microsoft.Extensions.DependencyInjection
             return options;
         }
 
-        public static WorkflowOptions UseRedisLocking(this WorkflowOptions options, string connectionString)
+        public static WorkflowOptions UseRedisLocking(this WorkflowOptions options, string connectionString, string prefix = null)
         {
-            options.UseDistributedLockManager(sp => new RedisLockProvider(connectionString, sp.GetService<ILoggerFactory>()));
+            options.UseDistributedLockManager(sp => new RedisLockProvider(connectionString, prefix, sp.GetService<ILoggerFactory>()));
             return options;
         }
 
-        public static WorkflowOptions UseRedisPersistence(this WorkflowOptions options, string connectionString, string prefix)
+        public static WorkflowOptions UseRedisPersistence(this WorkflowOptions options, string connectionString, string prefix, bool deleteComplete = false)
         {
-            options.UsePersistence(sp => new RedisPersistenceProvider(connectionString, prefix, sp.GetService<ILoggerFactory>()));
+            options.UsePersistence(sp => new RedisPersistenceProvider(connectionString, prefix, deleteComplete, sp.GetService<ILoggerFactory>()));
             return options;
         }
 

@@ -1,29 +1,33 @@
-﻿using Newtonsoft.Json;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+﻿using RabbitMQ.Client;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using WorkflowCore.Interface;
-using WorkflowCore.Models;
+using WorkflowCore.QueueProviders.RabbitMQ.Interfaces;
 
 namespace WorkflowCore.QueueProviders.RabbitMQ.Services
 {
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public class RabbitMQProvider : IQueueProvider
     {
-        private readonly IConnectionFactory _connectionFactory;
+        private readonly IRabbitMqQueueNameProvider _queueNameProvider;
+        private readonly RabbitMqConnectionFactory _rabbitMqConnectionFactory;
+        private readonly IServiceProvider _serviceProvider;
+        
         private IConnection _connection = null;
-        private static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
 
         public bool IsDequeueBlocking => false;
 
-        public RabbitMQProvider(IConnectionFactory connectionFactory)
+        public RabbitMQProvider(IServiceProvider serviceProvider,
+            IRabbitMqQueueNameProvider queueNameProvider,
+            RabbitMqConnectionFactory connectionFactory)
         {
-            _connectionFactory = connectionFactory;
+            _serviceProvider = serviceProvider;
+            _queueNameProvider = queueNameProvider;
+            _rabbitMqConnectionFactory = connectionFactory;
         }
 
         public async Task QueueWork(string id, QueueType queue)
@@ -31,11 +35,16 @@ namespace WorkflowCore.QueueProviders.RabbitMQ.Services
             if (_connection == null)
                 throw new InvalidOperationException("RabbitMQ provider not running");
 
-            using (var channel = _connection.CreateModel())
+            var channel = await _connection.CreateChannelAsync(new CreateChannelOptions(publisherConfirmationsEnabled: false, publisherConfirmationTrackingEnabled: false), CancellationToken.None);
+            try
             {
-                channel.QueueDeclare(queue: GetQueueName(queue), durable: true, exclusive: false, autoDelete: false, arguments: null);
-                var body = Encoding.UTF8.GetBytes(id);
-                channel.BasicPublish(exchange: "", routingKey: GetQueueName(queue), basicProperties: null, body: body);
+                await channel.QueueDeclareAsync(queue: _queueNameProvider.GetQueueName(queue), durable: true, exclusive: false, autoDelete: false, arguments: null, passive: false, noWait: false, CancellationToken.None);
+                var body = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(id));
+                await channel.BasicPublishAsync(exchange: "", routingKey: _queueNameProvider.GetQueueName(queue), mandatory: false, basicProperties: new BasicProperties(), body: body, CancellationToken.None);
+            }
+            finally
+            {
+                await channel.DisposeAsync();
             }
         }
 
@@ -44,64 +53,59 @@ namespace WorkflowCore.QueueProviders.RabbitMQ.Services
             if (_connection == null)
                 throw new InvalidOperationException("RabbitMQ provider not running");
 
-            using (var channel = _connection.CreateModel())
+            var channel = await _connection.CreateChannelAsync(new CreateChannelOptions(publisherConfirmationsEnabled: false, publisherConfirmationTrackingEnabled: false), CancellationToken.None);
+            try
             {
-                channel.QueueDeclare(queue: GetQueueName(queue),
-                                     durable: true,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
+                await channel.QueueDeclareAsync(queue: _queueNameProvider.GetQueueName(queue),
+                                         durable: true,
+                                         exclusive: false,
+                                         autoDelete: false,
+                                         arguments: null,
+                                         passive: false,
+                                         noWait: false,
+                                         CancellationToken.None);
 
-                channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+                await channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, CancellationToken.None);
 
-                var msg = channel.BasicGet(GetQueueName(queue), false);
+                var msg = await channel.BasicGetAsync(_queueNameProvider.GetQueueName(queue), autoAck: false, CancellationToken.None);
                 if (msg != null)
                 {
-                    var data = Encoding.UTF8.GetString(msg.Body);
-                    channel.BasicAck(msg.DeliveryTag, false);
+                    var data = Encoding.UTF8.GetString(msg.Body.ToArray());
+                    await channel.BasicAckAsync(msg.DeliveryTag, multiple: false, CancellationToken.None);
                     return data;
                 }
                 return null;
+            }
+            finally
+            {
+                await channel.DisposeAsync();
             }
         }
         
         public void Dispose()
         {
+            // GetAwaiter().GetResult() is the best available sync-over-async pattern for IDisposable.Dispose()
             if (_connection != null)
             {
                 if (_connection.IsOpen)
-                    _connection.Close();
+                    _connection.CloseAsync(200, "OK", TimeSpan.FromSeconds(10), abort: false, CancellationToken.None).GetAwaiter().GetResult();
             }
         }
 
         public async Task Start()
         {
-            _connection = _connectionFactory.CreateConnection("Workflow-Core");
+            _connection = await _rabbitMqConnectionFactory(_serviceProvider, "Workflow-Core");
         }
 
         public async Task Stop()
         {
             if (_connection != null)
             {
-                _connection.Close();
+                await _connection.CloseAsync(200, "OK", TimeSpan.FromSeconds(10), abort: false, CancellationToken.None);
                 _connection = null;
             }
         }
 
-        private string GetQueueName(QueueType queue)
-        {
-            switch (queue)
-            {
-                case QueueType.Workflow:
-                    return "wfc.workflow_queue";
-                case QueueType.Event:
-                    return "wfc.event_queue";
-                case QueueType.Index:
-                    return "wfc.index_queue";
-            }
-            return null;
-        }
-                
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 }

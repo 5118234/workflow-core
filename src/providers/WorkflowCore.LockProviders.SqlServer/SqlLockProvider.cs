@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WorkflowCore.Interface;
 using System.Data;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Threading;
 
 namespace WorkflowCore.LockProviders.SqlServer
@@ -78,10 +77,10 @@ namespace WorkflowCore.LockProviders.SqlServer
                             return false;
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         connection.Close();
-                        throw ex;
+                        throw;
                     }
                 }
                 finally
@@ -98,8 +97,8 @@ namespace WorkflowCore.LockProviders.SqlServer
             {
                 try
                 {
-                    SqlConnection connection = null;
-                    connection = _locks[Id];
+                    if (!_locks.TryGetValue(Id, out var connection))
+                        return;
 
                     if (connection == null)
                         return;
@@ -133,12 +132,9 @@ namespace WorkflowCore.LockProviders.SqlServer
             }
         }
 
-        public async Task Start()
-        {         
-        }
-
-        public async Task Stop()
-        {
-        }
+        public Task Start() => Task.CompletedTask;
+        
+        public Task Stop() => Task.CompletedTask;
+        
     }
 }

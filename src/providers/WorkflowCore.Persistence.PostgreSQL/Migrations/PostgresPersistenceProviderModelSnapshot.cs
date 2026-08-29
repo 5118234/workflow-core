@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WorkflowCore.Persistence.PostgreSQL;
 
+#nullable disable
+
 namespace WorkflowCore.Persistence.PostgreSQL.Migrations
 {
     [DbContext(typeof(PostgresContext))]
@@ -15,16 +17,26 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
-                .HasAnnotation("ProductVersion", "3.1.0")
+#if NETSTANDARD2_1
+                .HasAnnotation("ProductVersion", "5.0.1")
+#elif NET6_0  
+                .HasAnnotation("ProductVersion", "7.0.0")
+#elif NET8_0
+                .HasAnnotation("ProductVersion", "9.0.9")
+#else
+                .HasAnnotation("ProductVersion", "9.0.9")
+#endif
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedEvent", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<string>("EventData")
                         .HasColumnType("text");
@@ -33,15 +45,15 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("EventTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsProcessed")
                         .HasColumnType("boolean");
@@ -57,41 +69,43 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
 
                     b.HasIndex("EventName", "EventKey");
 
-                    b.ToTable("Event","wfc");
+                    b.ToTable("Event", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionError", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<DateTime>("ErrorTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExecutionPointerId")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Message")
                         .HasColumnType("text");
 
                     b.Property<string>("WorkflowId")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("PersistenceId");
 
-                    b.ToTable("ExecutionError","wfc");
+                    b.ToTable("ExecutionError", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
@@ -103,25 +117,25 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("EndTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("EventData")
                         .HasColumnType("text");
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("EventPublished")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Id")
-                        .HasColumnType("character varying(50)")
-                        .HasMaxLength(50);
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Outcome")
                         .HasColumnType("text");
@@ -130,8 +144,8 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("PredecessorId")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("RetryCount")
                         .HasColumnType("integer");
@@ -140,10 +154,10 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SleepUntil")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("StartTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -152,8 +166,8 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("StepName")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<long>("WorkflowId")
                         .HasColumnType("bigint");
@@ -162,19 +176,20 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
 
                     b.HasIndex("WorkflowId");
 
-                    b.ToTable("ExecutionPointer","wfc");
+                    b.ToTable("ExecutionPointer", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExtensionAttribute", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<string>("AttributeKey")
-                        .HasColumnType("character varying(100)")
-                        .HasMaxLength(100);
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("AttributeValue")
                         .HasColumnType("text");
@@ -186,55 +201,85 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
 
                     b.HasIndex("ExecutionPointerId");
 
-                    b.ToTable("ExtensionAttribute","wfc");
+                    b.ToTable("ExtensionAttribute", "wfc");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedScheduledCommand", b =>
+                {
+                    b.Property<long>("PersistenceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
+
+                    b.Property<string>("CommandName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Data")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("ExecuteTime")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("PersistenceId");
+
+                    b.HasIndex("ExecuteTime");
+
+                    b.HasIndex("CommandName", "Data")
+                        .IsUnique();
+
+                    b.ToTable("ScheduledCommand", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedSubscription", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<string>("EventKey")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("EventName")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ExecutionPointerId")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ExternalToken")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("ExternalTokenExpiry")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalWorkerId")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("StepId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("SubscribeAsOf")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SubscriptionData")
                         .HasColumnType("text");
 
                     b.Property<Guid>("SubscriptionId")
-                        .HasColumnType("uuid")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("uuid");
 
                     b.Property<string>("WorkflowId")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("PersistenceId");
 
@@ -245,39 +290,40 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                     b.HasIndex("SubscriptionId")
                         .IsUnique();
 
-                    b.ToTable("Subscription","wfc");
+                    b.ToTable("Subscription", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedWorkflow", b =>
                 {
                     b.Property<long>("PersistenceId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("PersistenceId"));
 
                     b.Property<DateTime?>("CompleteTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreateTime")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Data")
                         .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("character varying(500)")
-                        .HasMaxLength(500);
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid>("InstanceId")
-                        .HasColumnType("uuid")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("uuid");
 
                     b.Property<long?>("NextExecution")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Reference")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -286,8 +332,8 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("WorkflowDefinitionId")
-                        .HasColumnType("character varying(200)")
-                        .HasMaxLength(200);
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("PersistenceId");
 
@@ -296,7 +342,7 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
 
                     b.HasIndex("NextExecution");
 
-                    b.ToTable("Workflow","wfc");
+                    b.ToTable("Workflow", "wfc");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
@@ -306,6 +352,8 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasForeignKey("WorkflowId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Workflow");
                 });
 
             modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExtensionAttribute", b =>
@@ -315,6 +363,18 @@ namespace WorkflowCore.Persistence.PostgreSQL.Migrations
                         .HasForeignKey("ExecutionPointerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ExecutionPointer");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedExecutionPointer", b =>
+                {
+                    b.Navigation("ExtensionAttributes");
+                });
+
+            modelBuilder.Entity("WorkflowCore.Persistence.EntityFramework.Models.PersistedWorkflow", b =>
+                {
+                    b.Navigation("ExecutionPointers");
                 });
 #pragma warning restore 612, 618
         }

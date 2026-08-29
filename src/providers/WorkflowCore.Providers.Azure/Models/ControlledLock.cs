@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.WindowsAzure.Storage.Blob;
+﻿using Azure.Storage.Blobs.Specialized;
 
 namespace WorkflowCore.Providers.Azure.Models
 {
@@ -9,9 +6,9 @@ namespace WorkflowCore.Providers.Azure.Models
     {
         public string Id { get; set; }
         public string LeaseId { get; set; }
-        public CloudBlockBlob Blob { get; set; }
+        public BlockBlobClient Blob { get; set; }
 
-        public ControlledLock(string id, string leaseId, CloudBlockBlob blob)
+        public ControlledLock(string id, string leaseId, BlockBlobClient blob)
         {
             Id = id;
             LeaseId = leaseId;

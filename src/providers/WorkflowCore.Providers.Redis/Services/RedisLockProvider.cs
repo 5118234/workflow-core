@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -14,25 +13,27 @@ namespace WorkflowCore.Providers.Redis.Services
 {
     public class RedisLockProvider : IDistributedLockProvider
     {
-        private readonly ILogger _logger;        
-        private readonly string _connectionString;        
+        private readonly ILogger _logger;
+        private readonly string _connectionString;
+        private readonly string _prefix;
         private IConnectionMultiplexer _multiplexer;
         private RedLockFactory _redlockFactory;
         private readonly TimeSpan _lockTimeout = TimeSpan.FromMinutes(1);
         private readonly List<IRedLock> ManagedLocks = new List<IRedLock>();
+        private readonly SemaphoreSlim _reconnectLock = new SemaphoreSlim(1, 1);
 
-        public RedisLockProvider(string connectionString, ILoggerFactory logFactory)
+        public RedisLockProvider(string connectionString, string prefix, ILoggerFactory logFactory)
         {
             _connectionString = connectionString;
+            _prefix = prefix;
             _logger = logFactory.CreateLogger(GetType());
         }
 
         public async Task<bool> AcquireLock(string Id, CancellationToken cancellationToken)
         {
-            if (_redlockFactory == null)
-                throw new InvalidOperationException();
+            await EnsureConnected(cancellationToken);
 
-            var redLock = await _redlockFactory.CreateLockAsync(Id, _lockTimeout);
+            var redLock = await _redlockFactory.CreateLockAsync(GetResource(Id), _lockTimeout);
 
             if (redLock.IsAcquired)
             {
@@ -51,11 +52,13 @@ namespace WorkflowCore.Providers.Redis.Services
             if (_redlockFactory == null)
                 throw new InvalidOperationException();
 
+            var resource = GetResource(Id);
+
             lock (ManagedLocks)
             {
                 foreach (var redLock in ManagedLocks)
                 {
-                    if (redLock.Resource == Id)
+                    if (redLock.Resource == resource)
                     {
                         redLock.Dispose();
                         ManagedLocks.Remove(redLock);
@@ -69,16 +72,62 @@ namespace WorkflowCore.Providers.Redis.Services
 
         public async Task Start()
         {
-            _multiplexer = await ConnectionMultiplexer.ConnectAsync(_connectionString);           
-            _redlockFactory = RedLockFactory.Create(new List<RedLockMultiplexer>() { new RedLockMultiplexer(_multiplexer) });
+            await Connect(CancellationToken.None);
         }
 
         public async Task Stop()
         {
             _redlockFactory?.Dispose();
-            await _multiplexer.CloseAsync();
-            _multiplexer = null;
-            
+            _redlockFactory = null;
+            if (_multiplexer != null)
+            {
+                await _multiplexer.CloseAsync();
+                _multiplexer = null;
+            }
+        }
+
+        private async Task EnsureConnected(CancellationToken cancellationToken)
+        {
+            if (_redlockFactory != null && _multiplexer != null && _multiplexer.IsConnected)
+                return;
+
+            await _reconnectLock.WaitAsync(cancellationToken);
+            try
+            {
+                if (_redlockFactory != null && _multiplexer != null && _multiplexer.IsConnected)
+                    return;
+
+                _logger.LogWarning("Redis multiplexer is disconnected or missing; reconnecting before lock acquire");
+                await Connect(cancellationToken);
+            }
+            finally
+            {
+                _reconnectLock.Release();
+            }
+        }
+
+        private async Task Connect(CancellationToken cancellationToken)
+        {
+            _redlockFactory?.Dispose();
+            _redlockFactory = null;
+
+            if (_multiplexer != null)
+            {
+                try { await _multiplexer.CloseAsync(); } catch { }
+                _multiplexer = null;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            _multiplexer = await ConnectionMultiplexer.ConnectAsync(_connectionString);
+            _redlockFactory = RedLockFactory.Create(new List<RedLockMultiplexer> { new RedLockMultiplexer(_multiplexer) });
+        }
+
+        private string GetResource(string key)
+        {
+            if (string.IsNullOrEmpty(_prefix))
+                return key;
+
+            return $"{_prefix}:{key}";
         }
     }
 }

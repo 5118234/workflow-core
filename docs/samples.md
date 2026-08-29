@@ -33,3 +33,12 @@
 [Exposing a REST API](https://github.com/danielgerlag/workflow-core/tree/master/src/samples/WebApiSample)
 
 [Human(User) Workflow](https://github.com/danielgerlag/workflow-core/tree/master/src/samples/WorkflowCore.Sample08)
+
+[Workflow Middleware](https://github.com/danielgerlag/workflow-core/tree/master/src/samples/WorkflowCore.Sample19)
+
+## AI & Agentic Workflow Samples
+
+[Azure AI Foundry - Chat, Agents & Tools](https://github.com/danielgerlag/workflow-core/tree/master/src/samples/WorkflowCore.Sample.AzureFoundry) - Interactive sample demonstrating:
+  - Simple LLM chat completion
+  - Agentic workflows with automatic tool execution (weather, calculator)
+  - Human-in-the-loop approval workflows

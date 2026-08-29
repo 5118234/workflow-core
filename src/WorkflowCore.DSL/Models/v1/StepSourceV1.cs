@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Text;
 
 namespace WorkflowCore.Models.DefinitionStorage.v1
 {
     public class StepSourceV1
     {
         public string StepType { get; set; }
-        
+
         public string Id { get; set; }
 
         public string Name { get; set; }
@@ -30,8 +29,9 @@ namespace WorkflowCore.Models.DefinitionStorage.v1
         public ExpandoObject Inputs { get; set; } = new ExpandoObject();
 
         public Dictionary<string, string> Outputs { get; set; } = new Dictionary<string, string>();
-        
+
         public Dictionary<string, string> SelectNextStep { get; set; } = new Dictionary<string, string>();
 
+        public bool ProceedOnCancel { get; set; } = false;
     }
 }
